@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NASA Poster Studio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.4 Inter, system-ui, sans-serif; background: #111; color: #eee; display: grid; grid-template-columns: 340px 1fr; height: 100vh; }
+  aside { overflow-y: auto; padding: 16px; background: #1a1a1a; border-right: 1px solid #2a2a2a; }
+  main { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; overflow: hidden; gap: 8px; }
+  canvas { max-width: 100%; max-height: calc(100vh - 80px); box-shadow: 0 20px 60px #000a; touch-action: none; }
+  main small { color: #777; }
+  h1 { font-size: 16px; margin: 0 0 12px; letter-spacing: .05em; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: #888; margin: 18px 0 6px; }
+  label { display: block; font-size: 12px; color: #aaa; margin: 8px 0 3px; }
+  label.check { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+  input, select, textarea, button { width: 100%; font: inherit; color: #eee; background: #0e0e0e; border: 1px solid #333; border-radius: 6px; padding: 7px 9px; }
+  input[type=checkbox] { width: auto; }
+  textarea { font-family: "JetBrains Mono", monospace; font-size: 11px; min-height: 90px; resize: vertical; }
+  input[type=color] { padding: 2px; height: 34px; }
+  input[type=range] { padding: 0; }
+  button { cursor: pointer; background: #ff6a2b; border: 0; color: #111; font-weight: 700; }
+  button.ghost { background: #262626; color: #eee; font-weight: 400; }
+  .row { display: flex; gap: 6px; } .row > * { flex: 1; min-width: 0; }
+  .pick { flex: 0 0 110px; font-size: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .chips button { width: auto; padding: 3px 8px; font-size: 11px; background: #262626; color: #ccc; font-weight: 400; border-radius: 99px; }
+  .chips button:hover { background: #ff6a2b; color: #111; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 8px; }
+  .grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; cursor: pointer; border: 2px solid transparent; background: #000; }
+  .grid img.sel { border-color: #ff6a2b; }
+  #status { font-size: 12px; color: #888; margin-top: 6px; }
+  details { margin-top: 6px; font-size: 12px; color: #aaa; }
+  @media (max-width: 760px) { body { grid-template-columns: 1fr; height: auto; } main { order: -1; } }
+</style>
+</head>
+<body>
+<aside>
+  <h1>NASA POSTER STUDIO</h1>
+
+  <h2>1 · Bild suchen</h2>
+  <form id="searchForm" class="row">
+    <input id="q" value="saturn v rocket" placeholder="z.B. saturn v start, mondlandung">
+    <button style="flex:0 0 70px">Suchen</button>
+  </form>
+  <details>
+    <summary>Suche verfeinern</summary>
+    <label class="check"><input type="checkbox" id="titleOnly"> Begriffe müssen im Bildtitel stehen</label>
+    <label>Bilder ausblenden mit diesen Wörtern (Komma-getrennt)</label>
+    <input id="exclude" value="exhibit, museum, ceremony, gala, award, visitor, podium, reception, dinner, briefing">
+    <div class="row">
+      <div><label>Jahr von</label><input id="yearFrom" type="number" placeholder="1960"></div>
+      <div><label>bis</label><input id="yearTo" type="number" placeholder="2026"></div>
+    </div>
+  </details>
+  <label>Ideen</label>
+  <div class="chips" id="ideas"></div>
+  <div id="status"></div>
+  <div class="grid" id="results"></div>
+  <button class="ghost" id="more" style="margin-top:8px; display:none">Weitere Bilder laden</button>
+  <label>Ähnliche Begriffe zum gewählten Bild</label>
+  <div class="chips" id="related"></div>
+
+  <h2>2 · Format & Bild</h2>
+  <label>Format</label>
+  <select id="format">
+    <option value="3000x4200">Poster 50×70</option>
+    <option value="2480x3508">Poster A-Format</option>
+    <option value="1179x2556">Wallpaper iPhone</option>
+    <option value="3840x2160">Wallpaper Desktop 4K</option>
+  </select>
+  <div class="row">
+    <div><label>Hintergrund</label><input type="color" id="bg" value="#1c1c1c"></div>
+    <div><label>Schrift</label><input type="color" id="fg" value="#f2efe8"></div>
+    <div><label>Akzent</label><input type="color" id="accent" value="#ff6a2b"></div>
+  </div>
+  <label>Bild-Mischmodus <small>(passt sich der Hintergrundfarbe an)</small></label>
+  <select id="blend">
+    <option value="screen">Screen – Schwarz verschwindet (dunkler Hintergrund)</option>
+    <option value="multiply">Multiply – Weiß verschwindet (heller Hintergrund)</option>
+    <option value="luminosity">Luminosity</option>
+    <option value="source-over">Normal – Foto wie es ist</option>
+  </select>
+  <label class="check"><input type="checkbox" id="gray" checked> Bild schwarz-weiß (aus = Farbe)</label>
+  <label>Bildgröße</label><input type="range" id="scale" min="0.4" max="2" step="0.01" value="1">
+  <label>Bild vertikal</label><input type="range" id="offY" min="-0.4" max="0.4" step="0.01" value="0">
+
+  <h2>3 · Großes Wort</h2>
+  <div class="row"><input id="word" value="SATURN V"><select class="pick" data-for="word"></select></div>
+  <label>Drehung: <span id="rotVal">90°</span></label>
+  <input type="range" id="rot" min="-90" max="90" step="1" value="90">
+  <label>Größe</label><input type="range" id="wordSize" min="0.3" max="1.5" step="0.01" value="1">
+  <label>Deckkraft</label><input type="range" id="wordAlpha" min="0.05" max="1" step="0.01" value="1">
+  <div class="row">
+    <div><label>Ebene</label>
+      <select id="wordLayer"><option value="back">Hinter dem Bild</option><option value="front">Vor dem Bild</option></select></div>
+    <div><label>Darstellung</label>
+      <select id="wordStyle"><option value="fill">Gefüllt</option><option value="outline">Kontur</option></select></div>
+  </div>
+  <label>Mischung mit Bild/Hintergrund</label>
+  <select id="wordBlend">
+    <option value="source-over">Normal</option>
+    <option value="multiply">Multiplizieren</option>
+    <option value="screen">Negativ multiplizieren (Screen)</option>
+    <option value="overlay">Ineinanderkopieren (Overlay)</option>
+    <option value="difference">Differenz</option>
+    <option value="color">Farbe</option>
+  </select>
+
+  <h2>4 · Texte</h2>
+  <label>Titel unten</label>
+  <div class="row"><input id="title" value="Saturn V"><select class="pick" data-for="title"></select></div>
+  <label>Kopfzeile rechts</label><input id="brand" value="NASA ARCHIVE · SPACE COLLECTION">
+  <label>Datenblock (KEY: WERT pro Zeile)</label><textarea id="specs"></textarea>
+  <label>Hinweis links (erste Zeile = Akzent)</label><textarea id="note1" style="min-height:60px">THRUST
+7,600,000 LBF
+[34.5 MN]</textarea>
+  <label>Hinweis rechts</label><textarea id="note2" style="min-height:60px">HEIGHT
+110.6 M / 363 FT
+[3 STAGES]</textarea>
+  <label>Fußzeile</label><input id="footer">
+
+  <h2>Anzeigen</h2>
+  <label class="check"><input type="checkbox" id="autoContrast" checked> Schriftfarbe automatisch lesbar halten</label>
+  <label class="check"><input type="checkbox" id="show_word" checked> Großes Wort</label>
+  <label class="check"><input type="checkbox" id="show_specs" checked> Datenblock</label>
+  <label class="check"><input type="checkbox" id="show_brand" checked> Kopfzeile</label>
+  <label class="check"><input type="checkbox" id="show_notes" checked> Hinweise</label>
+  <label class="check"><input type="checkbox" id="show_title" checked> Titel</label>
+  <label class="check"><input type="checkbox" id="show_footer" checked> Fußzeile & Barcode</label>
+  <button class="ghost" id="resetPos" style="margin-top:6px">Positionen zurücksetzen</button>
+
+  <h2>5 · Export</h2>
+  <label>Auflösung</label>
+  <select id="exScale">
+    <option value="0.25">25 % – Vorschau / Teilen</option>
+    <option value="0.5">50 % – Bildschirm</option>
+    <option value="1" selected>100 % – Standard</option>
+    <option value="1.5">150 % – großer Druck</option>
+    <option value="2">200 % – maximale Qualität</option>
+  </select>
+  <div class="row">
+    <div><label>Dateiformat</label>
+      <select id="exType"><option value="image/png">PNG (verlustfrei)</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select></div>
+    <div><label>Qualität: <span id="qVal">90</span> %</label><input type="range" id="exQ" min="0.5" max="1" step="0.01" value="0.9"></div>
+  </div>
+  <div id="exInfo" style="font-size:12px; color:#aaa; margin:8px 0; line-height:1.6"></div>
+  <button id="download">Herunterladen</button>
+</aside>
+<main>
+  <canvas id="cv"></canvas>
+  <small>Texte auf dem Poster mit der Maus verschieben – sie rasten an Rändern, Mitte und anderen Elementen ein.</small>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+let img = null, item = null, page = 1, lastQuery = '', origHref = null, imgIsOrig = false;
+let pos = {}, boxes = {}, drag = null; // pos: dragged positions as fractions of W/H; boxes: element rects from last draw
+
+const IDEAS = ['saturn v launch', 'apollo 11 moon', 'earthrise', 'space shuttle launch', 'hubble nebula', 'jupiter juno',
+  'mars rover', 'international space station', 'astronaut spacewalk', 'artemis sls', 'solar eclipse', 'galaxy',
+  'saturn rings cassini', 'lunar module', 'x-15', 'blue marble', 'pillars of creation', 'webb telescope'];
+
+// the NASA archive is English; translate common German space words
+const DE = { start: 'launch', rakete: 'rocket', mond: 'moon', mondlandung: 'moon landing', landung: 'landing', erde: 'earth',
+  sonne: 'sun', sterne: 'stars', stern: 'star', galaxie: 'galaxy', nebel: 'nebula', komet: 'comet', planeten: 'planets',
+  raumstation: 'space station', raumfähre: 'space shuttle', raumanzug: 'spacesuit', weltraum: 'space', satellit: 'satellite',
+  astronautin: 'astronaut', triebwerk: 'engine', sonnenfinsternis: 'solar eclipse', mondfinsternis: 'lunar eclipse',
+  finsternis: 'eclipse', teleskop: 'telescope', ringe: 'rings', außenbordeinsatz: 'spacewalk', startrampe: 'launch pad' };
+const terms = q => q.toLowerCase().split(/[\s,;]+/).filter(Boolean).map(w => DE[w] || w);
+console.assert(terms('Saturn V, Start').join(' ') === 'saturn v launch', 'terms');
+
+function chips(el, words, onClick) {
+  el.innerHTML = '';
+  words.forEach(w => { const b = document.createElement('button'); b.type = 'button'; b.textContent = w; b.onclick = () => onClick(w); el.append(b); });
+}
+function runSearch(q) { $('q').value = q; search(q); }
+function showIdeas() {
+  const pick = [...IDEAS].sort(() => Math.random() - 0.5).slice(0, 8);
+  chips($('ideas'), ['🎲 Zufall', ...pick], w => w.startsWith('🎲') ? runSearch(IDEAS[Math.floor(Math.random() * IDEAS.length)]) : runSearch(w));
+}
+
+// drops items whose metadata mentions any excluded word (exhibits, galas, …)
+function excluded(it, words) {
+  const text = JSON.stringify(it.data[0]).toLowerCase();
+  return words.some(w => text.includes(w));
+}
+console.assert(excluded({ data: [{ title: 'Saturn V Exhibit' }] }, ['exhibit']) && !excluded({ data: [{ title: 'Saturn V launch' }] }, ['exhibit']), 'exclude filter');
+
+// --- NASA search (images-api.nasa.gov sends CORS headers, no API key needed) ---
+async function fetchPage(query, pg) {
+  const p = new URLSearchParams({ media_type: 'image', page: pg });
+  p.set($('titleOnly').checked ? 'title' : 'q', query);
+  if ($('yearFrom').value) p.set('year_start', $('yearFrom').value);
+  if ($('yearTo').value) p.set('year_end', $('yearTo').value);
+  return (await (await fetch('https://images-api.nasa.gov/search?' + p)).json()).collection;
+}
+
+async function search(q, more = false) {
+  if (!more) { page = 1; item = null; $('results').innerHTML = ''; }
+  $('status').textContent = 'Suche…';
+  try {
+    let col, note = '';
+    if (more) col = await fetchPage(lastQuery, page);
+    else {
+      const t = terms(q);
+      if (!t.length) return;
+      // the API needs every term to match; drop trailing terms until something is found
+      for (let n = t.length; n > 0; n--) {
+        lastQuery = t.slice(0, n).join(' ');
+        col = await fetchPage(lastQuery, 1);
+        if (col.items.length) break;
+      }
+      if (lastQuery !== t.join(' ')) note = `Nichts für „${t.join(' ')}“. `;
+    }
+    const bad = $('exclude').value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const items = col.items.filter(i => i.links && !excluded(i, bad));
+    $('more').style.display = (col.links || []).some(l => l.rel === 'next') ? '' : 'none';
+    $('status').textContent = $('results').children.length + items.length
+      ? `${note}Suche „${lastQuery}“: ${col.metadata?.total_hits ?? ''} Treffer, ${col.items.length - items.length} aussortiert`
+      : 'Nichts gefunden – andere Begriffe oder weniger Filter probieren';
+    items.forEach(it => {
+      const t = document.createElement('img');
+      t.src = it.links.find(l => l.rel === 'preview')?.href || it.links[0].href;
+      t.title = it.data[0].title;
+      t.loading = 'lazy';
+      t.onclick = () => pick(it, t);
+      $('results').append(t);
+      if (!item) pick(it, t);
+    });
+    page++;
+  } catch (e) { $('status').textContent = 'Fehler: ' + e.message; }
+}
+
+function pick(it, thumb) {
+  item = it;
+  document.querySelectorAll('.grid img').forEach(i => i.classList.toggle('sel', i === thumb));
+  const d = it.data[0], kw = d.keywords || [];
+  const href = (it.links.find(l => /~large\./.test(l.href)) || it.links.find(l => /~medium\./.test(l.href)) || it.links[0]).href;
+  const specs = [
+    ['NASA ID', d.nasa_id], ['DATE', (d.date_created || '').slice(0, 10)], ['CENTER', d.center],
+    ['LOCATION', d.location], ['CREDIT', d.photographer || d.secondary_creator || 'NASA'],
+    ['TAGS', kw.slice(0, 3).join(' / ')],
+  ].filter(([, v]) => v).map(([k, v]) => `${k}: ${String(v).toUpperCase()}`);
+  $('specs').value = specs.join('\n');
+  $('title').value = d.title.length > 40 ? d.title.slice(0, 40).trim() + '…' : d.title;
+  $('footer').value = `IMAGE CREDIT: NASA  ·  ${(d.center || '').toUpperCase()}  ·  ${(d.date_created || '').slice(0, 4)}`;
+
+  const opts = [...new Set([lastQuery, d.title, ...kw, d.nasa_id, d.center, d.location, (d.date_created || '').slice(0, 4)].filter(Boolean))];
+  document.querySelectorAll('select.pick').forEach(s => {
+    s.innerHTML = '<option value="">Aus Bilddaten…</option>' + opts.map(o => `<option>${o.replace(/</g, '&lt;')}</option>`).join('');
+  });
+  chips($('related'), kw.slice(0, 12), runSearch);
+
+  origHref = it.links.find(l => /~orig\.(jpe?g|png|tiff?)$/i.test(l.href))?.href;
+  imgIsOrig = false;
+  $('status').textContent = 'Lade Bild…';
+  loadImage(href).then(im => { if (item === it) { img = im; $('status').textContent = d.title; draw(); } })
+    .catch(() => { $('status').textContent = 'Bild konnte nicht geladen werden'; });
+}
+
+// NASA's image host sends no CORS header, so images go through the public wsrv.nl proxy;
+// without it the canvas could not be exported.
+function loadImage(href) {
+  return new Promise((resolve, reject) => {
+    const im = new Image();
+    im.crossOrigin = 'anonymous';
+    im.onload = () => resolve(im);
+    im.onerror = reject;
+    im.src = 'https://wsrv.nl/?url=' + encodeURIComponent(href) + (/\.tiff?$/i.test(href) ? '&output=jpg' : '');
+  });
+}
+
+// --- Rendering ---
+const MONO = '"JetBrains Mono", monospace', SANS = 'Inter, sans-serif';
+const show = id => $('show_' + id).checked;
+const lum = hex => { const n = parseInt(hex.slice(1), 16); return (0.299 * (n >> 16) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255; };
+
+// average luminance of what is already painted under a rect
+function areaLum(b) {
+  const x = Math.max(0, b.x | 0), y = Math.max(0, b.y | 0);
+  const w = Math.min(cv.width - x, Math.ceil(b.w)), h = Math.min(cv.height - y, Math.ceil(b.h));
+  if (w < 1 || h < 1) return null;
+  const d = ctx.getImageData(x, y, w, h).data;
+  let s = 0, n = 0;
+  for (let i = 0; i < d.length; i += 64) { s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; n++; }
+  return s / n / 255;
+}
+// swap to black/white when the chosen color would vanish into what's underneath
+function readable(color, under) {
+  if (under == null || !$('autoContrast').checked || Math.abs(lum(color) - under) >= 0.35) return color;
+  return under > 0.5 ? '#111111' : '#ffffff';
+}
+
+// shift that aligns the nearest of `edges` to a target within thr, or null
+function snap(edges, targets, thr) {
+  let best = null;
+  for (const e of edges) for (const t of targets) {
+    const d = t - e;
+    if (Math.abs(d) <= thr && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, t };
+  }
+  return best;
+}
+console.assert(snap([10, 20], [22, 100], 5).d === 2 && snap([10], [50], 5) === null, 'snap');
+
+function fitFont(text, weight, maxW, maxSize) {
+  ctx.font = `${weight} 100px ${SANS}`;
+  return Math.min(maxSize, 100 * maxW / Math.max(1, ctx.measureText(text).width));
+}
+
+function textBlock(lines, x, y, size, color, align, firstColor) {
+  ctx.textAlign = align; ctx.textBaseline = 'top';
+  lines.forEach((l, i) => {
+    ctx.fillStyle = i === 0 ? firstColor : color;
+    ctx.font = `${i === 0 ? 700 : 400} ${size}px ${SANS}`;
+    ctx.fillText(l, x, y + i * size * 1.3);
+  });
+}
+
+function noteEl(id, text, ns, x, y, align) {
+  const lines = text.split('\n');
+  const w = Math.max(1, ...lines.map((l, i) => { ctx.font = `${i ? 400 : 700} ${ns}px ${SANS}`; return ctx.measureText(l).width; }));
+  return { id, w, h: lines.length * ns * 1.3, x: align === 'right' ? x - w : x, y,
+    render(x, y, c, a) { textBlock(lines, align === 'right' ? x + w : x, y, ns, c, align, a); } };
+}
+
+function draw(scale = 1) {
+  const [W, H] = $('format').value.split('x').map(v => Math.round(v * scale));
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const u = Math.min(W, H) / 100, m = 6 * u, ms = 1.15 * u;
+  const bg = $('bg').value, fg = $('fg').value, accent = $('accent').value;
+  const cy = H * 0.47;
+  boxes = {};
+
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  const drawWord = () => {
+    const word = $('word').value.toUpperCase(), a = +$('rot').value * Math.PI / 180;
+    const c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
+    const size = +$('wordSize').value * fitFont(word, 900, c * W * 0.85 + s * H * 0.72, c * H * 0.55 + s * W * 0.42);
+    ctx.save();
+    ctx.globalAlpha = +$('wordAlpha').value;
+    ctx.globalCompositeOperation = $('wordBlend').value;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.translate(W / 2, cy); ctx.rotate(a);
+    ctx.font = `900 ${size}px ${SANS}`;
+    if ($('wordStyle').value === 'outline') { ctx.lineWidth = size * 0.02; ctx.strokeStyle = accent; ctx.strokeText(word, 0, 0); }
+    else { ctx.fillStyle = accent; ctx.fillText(word, 0, 0); }
+    ctx.restore();
+  };
+  const front = $('wordLayer').value === 'front';
+  if (show('word') && !front) drawWord();
+
+  if (img) {
+    const k = +$('scale').value * Math.min(W * 0.9 / img.width, H * 0.62 / img.height);
+    const w = img.width * k, h = img.height * k;
+    ctx.save();
+    ctx.globalCompositeOperation = $('blend').value;
+    if ($('gray').checked) ctx.filter = 'grayscale(1) contrast(1.15)';
+    ctx.drawImage(img, (W - w) / 2, cy + +$('offY').value * H - h / 2, w, h);
+    ctx.restore();
+  }
+
+  if (show('word') && front) drawWord();
+
+  // movable text elements: each knows its size, default position and how to paint itself
+  const els = [];
+  if (show('specs')) {
+    const header = `[ MISSION PROFILE // ${(item?.data[0].nasa_id || 'NASA').toUpperCase()} ]`;
+    const lines = $('specs').value.split('\n').filter(Boolean).map(line => {
+      const [k, ...rest] = line.split(':'), v = rest.join(':').trim(), key = '> ' + k.trim();
+      return v ? key + ' ' + '.'.repeat(Math.max(2, 34 - key.length - 1)) + ' ' + v : line;
+    });
+    ctx.font = `700 ${ms}px ${MONO}`; const hw = ctx.measureText(header).width + ms;
+    ctx.font = `400 ${ms}px ${MONO}`;
+    const w = Math.max(hw, ...lines.map(l => ctx.measureText(l).width));
+    els.push({ id: 'specs', w, h: ms * 2.4 + lines.length * ms * 1.45, x: m, y: m, render(x, y, c) {
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillStyle = c; ctx.fillRect(x, y, hw, ms * 1.6);
+      ctx.font = `700 ${ms}px ${MONO}`; ctx.fillStyle = lum(c) > 0.5 ? '#111111' : '#ffffff';
+      ctx.fillText(header, x + ms / 2, y + ms * 0.3);
+      ctx.font = `400 ${ms}px ${MONO}`; ctx.fillStyle = c;
+      lines.forEach((l, i) => ctx.fillText(l, x, y + ms * 2.4 + i * ms * 1.45));
+    } });
+  }
+  if (show('brand')) {
+    const t = $('brand').value.toUpperCase();
+    ctx.font = `400 ${ms}px ${MONO}`; const w = ctx.measureText(t).width;
+    els.push({ id: 'brand', w, h: ms * 1.6, x: W - m - w, y: m, render(x, y, c) {
+      ctx.font = `400 ${ms}px ${MONO}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = c;
+      ctx.fillText(t, x, y + ms * 0.3);
+    } });
+  }
+  if (show('notes')) {
+    els.push(noteEl('note1', $('note1').value, 1.5 * u, m + 2 * u, H * 0.3, 'left'));
+    els.push(noteEl('note2', $('note2').value, 1.5 * u, W - m - 2 * u, H * 0.6, 'right'));
+  }
+  if (show('title')) {
+    const t = $('title').value, ts = fitFont(t, 300, W - 2 * m, 8 * u);
+    ctx.font = `300 ${ts}px ${SANS}`; const w = ctx.measureText(t).width;
+    els.push({ id: 'title', w, h: ts * 0.95, x: m, y: H - m - 3.5 * u - ts * 0.75, render(x, y, c) {
+      ctx.font = `300 ${ts}px ${SANS}`; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = c;
+      ctx.fillText(t, x, y + ts * 0.75);
+    } });
+  }
+  if (show('footer')) {
+    els.push({ id: 'footer', w: W - 2 * m, h: 2.6 * u, x: m, y: H - m - 2.6 * u, render(x, y, c) {
+      const w = W - 2 * m;
+      ctx.fillStyle = c;
+      ctx.fillRect(x, y, w, Math.max(1, u * 0.08));
+      ctx.font = `400 ${u * 0.9}px ${MONO}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText($('footer').value, x, y + 0.8 * u);
+      let seed = [...(item?.data[0].nasa_id || 'nasa')].reduce((a, ch) => Math.imul(a, 31) + ch.charCodeAt(0) >>> 0, 7);
+      for (let bx = x + w - 14 * u; bx < x + w;) {
+        seed = Math.imul(seed, 1103515245) + 12345 >>> 0;
+        const bw = u * (0.12 + (seed % 4) * 0.12);
+        if (seed & 16) ctx.fillRect(bx, y + 0.6 * u, bw, 2 * u);
+        bx += bw + u * 0.12;
+      }
+    } });
+  }
+
+  for (const el of els) {
+    if (pos[el.id]) { el.x = pos[el.id].x * W; el.y = pos[el.id].y * H; }
+    const under = areaLum(el);
+    el.render(el.x, el.y, readable(fg, under), readable(accent, under));
+    boxes[el.id] = el;
+  }
+
+  // guides only while dragging, so they never end up in the export
+  if (drag && boxes[drag.id]) {
+    const b = boxes[drag.id];
+    ctx.save();
+    ctx.strokeStyle = '#ff2bd6'; ctx.lineWidth = Math.max(2, u * 0.12);
+    drag.guides.forEach(g => { ctx.beginPath(); if ('x' in g) { ctx.moveTo(g.x, 0); ctx.lineTo(g.x, H); } else { ctx.moveTo(0, g.y); ctx.lineTo(W, g.y); } ctx.stroke(); });
+    ctx.setLineDash([u * 0.6, u * 0.4]); ctx.strokeRect(b.x, b.y, b.w, b.h);
+    ctx.restore();
+  }
+  if (scale === 1 && !drag) estimateSoon();
+}
+
+let raf = 0;
+const redraw = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); };
+
+// --- dragging with snap guides ---
+function canvasPoint(e) {
+  const r = cv.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height };
+}
+const hit = p => Object.values(boxes).reverse().find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h);
+
+cv.addEventListener('pointerdown', e => {
+  const p = canvasPoint(e), b = hit(p);
+  if (!b) return;
+  drag = { id: b.id, dx: p.x - b.x, dy: p.y - b.y, guides: [] };
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove', e => {
+  const p = canvasPoint(e);
+  if (!drag) { cv.style.cursor = hit(p) ? 'move' : 'default'; return; }
+  const W = cv.width, H = cv.height, u = Math.min(W, H) / 100, m = 6 * u, b = boxes[drag.id];
+  let x = p.x - drag.dx, y = p.y - drag.dy;
+  const others = Object.values(boxes).filter(o => o.id !== drag.id);
+  const sx = e.altKey ? null : snap([x, x + b.w / 2, x + b.w], [m, W / 2, W - m, ...others.flatMap(o => [o.x, o.x + o.w / 2, o.x + o.w])], u);
+  const sy = e.altKey ? null : snap([y, y + b.h / 2, y + b.h], [m, H / 2, H - m, ...others.flatMap(o => [o.y, o.y + o.h / 2, o.y + o.h])], u);
+  drag.guides = [];
+  if (sx) { x += sx.d; drag.guides.push({ x: sx.t }); }
+  if (sy) { y += sy.d; drag.guides.push({ y: sy.t }); }
+  pos[drag.id] = { x: x / W, y: y / H };
+  redraw();
+});
+const endDrag = () => { if (drag) { drag = null; redraw(); } };
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+
+// --- wiring ---
+$('searchForm').onsubmit = e => { e.preventDefault(); search($('q').value); };
+$('more').onclick = () => search(lastQuery, true);
+$('resetPos').onclick = () => { pos = {}; draw(); };
+document.querySelectorAll('select.pick').forEach(s => s.onchange = () => {
+  if (s.value) { $(s.dataset.for).value = s.dataset.for === 'word' ? s.value.toUpperCase() : s.value; s.value = ''; draw(); }
+});
+// light background → multiply (white vanishes), dark → screen (black vanishes), unless the user wants the plain photo
+$('bg').addEventListener('input', () => {
+  if (['source-over', 'luminosity'].includes($('blend').value)) return;
+  $('blend').value = lum($('bg').value) > 0.5 ? 'multiply' : 'screen';
+});
+$('rot').addEventListener('input', () => $('rotVal').textContent = $('rot').value + '°');
+document.querySelectorAll('aside input, aside select, aside textarea').forEach(el => el.addEventListener('input', redraw));
+// --- export ---
+const SAFARI_MAX_PX = 16777216; // Safari/iOS refuse canvases above ~16.7 megapixels
+const toBlob = () => new Promise(r => cv.toBlob(r, $('exType').value, +$('exQ').value));
+
+// estimate: encode the 100 % preview once and scale by s^1.5, not s² — rescaled photos gain or lose fewer
+// bytes than pixels (measured: 200 % JPEG was 2.0 MB vs 2.2 MB estimated)
+let estTimer = 0, estBytes = 0;
+function estimateSoon() { clearTimeout(estTimer); estTimer = setTimeout(async () => { estBytes = (await toBlob())?.size || 0; showExportInfo(); }, 900); }
+function showExportInfo() {
+  const s = +$('exScale').value, [fw, fh] = $('format').value.split('x').map(Number);
+  const W = Math.round(fw * s), H = Math.round(fh * s), cm = px => (px / 300 * 2.54).toFixed(0);
+  const mb = estBytes ? `ca. ${(estBytes * s ** 1.5 / 1048576).toFixed(1)} MB` : 'Größe wird berechnet…';
+  $('exInfo').innerHTML = `<b>${W} × ${H} px</b> · ${mb}<br>Druck bei 300 dpi: ${cm(W)} × ${cm(H)} cm`
+    + (W * H > SAFARI_MAX_PX ? '<br><span style="color:#ff6a2b">Zu groß für Safari/iPhone – dort kleinere Auflösung wählen.</span>' : '');
+  $('qVal').textContent = Math.round($('exQ').value * 100);
+  $('exQ').disabled = $('exType').value === 'image/png';
+}
+['exScale', 'exType', 'exQ'].forEach(id => $(id).addEventListener('input', () => { showExportInfo(); if (id !== 'exScale') estimateSoon(); }));
+$('format').addEventListener('input', estimateSoon);
+
+$('download').onclick = async () => {
+  const btn = $('download');
+  btn.disabled = true; btn.textContent = 'Erzeuge Datei…';
+  try {
+    // use the full-size original for the export when NASA has one
+    if (origHref && !imgIsOrig) {
+      btn.textContent = 'Lade Originalbild…';
+      try { const it = item, im = await loadImage(origHref); if (item === it) { img = im; imgIsOrig = true; } } catch { /* keep the large version */ }
+    }
+    drag = null;
+    draw(+$('exScale').value);
+    const b = await toBlob();
+    draw();
+    if (!b) throw new Error('too big');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = ($('word').value || 'poster').toLowerCase().replace(/\W+/g, '-') + '.' + $('exType').value.split('/')[1].replace('jpeg', 'jpg');
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  } catch {
+    draw();
+    alert('Die Datei ist zu groß für diesen Browser. Bitte eine kleinere Auflösung wählen.');
+  } finally { btn.disabled = false; btn.textContent = 'Herunterladen'; }
+};
+
+showIdeas();
+showExportInfo();
+Promise.all([`900 50px Inter`, `300 50px Inter`, `700 50px Inter`, `400 20px "JetBrains Mono"`, `700 20px "JetBrains Mono"`].map(f => document.fonts.load(f)))
+  .finally(() => { draw(); search($('q').value); });
+</script>
+</body>
+</html>
