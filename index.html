@@ -7,215 +7,262 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&family=JetBrains+Mono:wght@400;700&display=swap">
 <style>
   * { box-sizing: border-box; } [hidden] { display: none !important; }
-  :root { --blue: #0a84ff; --text: #f5f5f7; --sub: #98989d; --fill: #2c2c2e; --bg: #000; --card: #1c1c1e; color-scheme: dark; }
-  body { margin: 0; font: 15px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; -webkit-font-smoothing: antialiased;
-    background: var(--bg); color: var(--text); display: grid; grid-template-columns: 380px 1fr; height: 100vh; }
-  aside { overflow-y: auto; padding: 28px 20px 40px; }
-  main { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; overflow: hidden; gap: 14px; }
-  canvas { max-width: 100%; max-height: calc(100vh - 100px); border-radius: 4px; box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 0 1px #2c2c2e; touch-action: none; }
-  main small { color: var(--sub); font-size: 13px; }
-  .top h1 { font-size: 28px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
-  .top p { color: var(--sub); margin: 4px 0 20px; }
-  .card { background: var(--card); border-radius: 18px; padding: 18px; margin-bottom: 14px; }
-  h2 { font-size: 19px; font-weight: 600; letter-spacing: -.01em; margin: 0 0 12px; }
-  label { display: block; font-size: 13px; color: var(--sub); margin: 12px 0 5px; }
-  input, select, textarea, button { width: 100%; font: inherit; font-size: 15px; color: var(--text); background: var(--fill); border: 1px solid transparent; border-radius: 10px; padding: 9px 12px; outline: none; }
-  input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(10,132,255,.35); }
-  select { appearance: none; -webkit-appearance: none; padding-right: 30px;
-    background: var(--fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2398989d' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center; }
-  textarea { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; min-height: 90px; resize: vertical; }
-  input[type=color] { padding: 3px; height: 40px; cursor: pointer; }
-  input[type=range] { padding: 0; background: none; accent-color: var(--blue); border: 0; box-shadow: none; }
-  button { cursor: pointer; background: var(--blue); color: #fff; border-radius: 980px; padding: 9px 18px; transition: background .15s; }
-  button:hover { background: #409cff; }
-  button:disabled { opacity: .5; cursor: default; }
-  button.ghost { background: var(--fill); color: var(--blue); margin-top: 12px; }
-  button.ghost:hover { background: #3a3a3c; }
-  /* iOS-style switches */
-  input[type=checkbox] { appearance: none; -webkit-appearance: none; flex: none; width: 44px; height: 26px; margin: 0; padding: 0; border: 0; border-radius: 13px; background: #39393d; position: relative; cursor: pointer; transition: background .2s; }
-  input[type=checkbox]::after { content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.2); transition: transform .2s; }
-  input[type=checkbox]:checked { background: #34c759; }
-  input[type=checkbox]:checked::after { transform: translateX(18px); }
-  input[type=checkbox]:focus-visible { box-shadow: 0 0 0 3px rgba(0,113,227,.3); }
-  .switch { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--text); font-size: 15px; margin: 0; padding: 9px 0; border-bottom: 1px solid #38383a; cursor: pointer; }
-  .switch:last-of-type { border-bottom: 0; }
-  .row { display: flex; gap: 8px; } .row > * { flex: 1; min-width: 0; }
-  .pick { flex: 0 0 120px; font-size: 13px; }
-  .search { display: flex; gap: 8px; } .search button { flex: 0 0 auto; width: auto; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  .chips button { width: auto; padding: 5px 12px; font-size: 13px; background: var(--fill); color: var(--text); }
-  .chips button:hover { background: var(--blue); color: #fff; }
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
-  .grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; cursor: pointer; background: var(--fill); outline: 3px solid transparent; outline-offset: -3px; transition: outline-color .15s; }
-  .grid img.sel { outline-color: var(--blue); }
-  #status { font-size: 13px; color: var(--sub); margin-top: 10px; }
-  details { margin-top: 14px; }
-  summary { cursor: pointer; color: var(--blue); font-size: 14px; list-style: none; }
+  :root { --bg: #0c0c0d; --fg: #f2efe9; --muted: #8d8a85; --line: #262626; --field: #161617; --accent: #ff6a2b;
+    --ease: cubic-bezier(.2,.7,.2,1); color-scheme: dark; }
+  body { margin: 0; font: 15px/1.5 "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif; -webkit-font-smoothing: antialiased;
+    background: var(--bg); color: var(--fg); display: grid; grid-template-columns: 400px 1fr; height: 100vh; }
+  aside { overflow-y: auto; padding: 36px 28px 60px; border-right: 1px solid #1a1a1b; }
+  main { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; overflow: hidden; gap: 16px;
+    background: radial-gradient(ellipse at center, #17171a, #080809 70%); }
+  canvas { max-width: 100%; max-height: calc(100vh - 110px); box-shadow: 0 40px 100px rgba(0,0,0,.7); touch-action: none; }
+  main small { color: var(--muted); font-size: 13px; }
+
+  .eyebrow { text-transform: uppercase; letter-spacing: .25em; font-size: 11px; color: var(--accent); margin: 0; }
+  .top h1 { font-size: 64px; line-height: .92; letter-spacing: -.03em; font-weight: 700; margin: 12px 0 36px; }
+
+  /* sections: numbered, collapsible, separated by hairlines */
+  .sec { border-top: 1px solid var(--line); }
+  .sec:last-of-type { border-bottom: 1px solid var(--line); }
+  .sec > summary { display: flex; align-items: baseline; gap: 14px; padding: 20px 0; font-size: 26px; letter-spacing: -.02em;
+    cursor: pointer; list-style: none; transition: color .3s; }
+  .sec > summary:hover { color: var(--accent); }
+  .sec > summary .n { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+  .sec > summary::after { content: '+'; margin-left: auto; font-weight: 300; font-size: 28px; line-height: 1; transition: transform .45s var(--ease); }
+  .sec[open] > summary::after { transform: rotate(45deg); }
   summary::-webkit-details-marker { display: none; }
-  summary::after { content: ' ›'; display: inline-block; transition: transform .2s; }
-  details[open] > summary::after { transform: rotate(90deg); }
-  #exInfo { font-size: 13px; color: var(--sub); margin: 14px 0; line-height: 1.6; }
-  #exInfo b { color: var(--text); }
-  #download { padding: 12px; font-size: 17px; }
-  @media (max-width: 760px) { body { grid-template-columns: 1fr; height: auto; } main { order: -1; padding: 20px 16px 0; } canvas { max-height: 70vh; } aside { padding: 20px 16px 40px; } }
+  .body { padding-bottom: 28px; animation: rise .55s var(--ease); }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+  .body details { margin-top: 16px; }
+  .body details > summary { cursor: pointer; list-style: none; font-size: 14px; color: var(--muted); transition: color .2s; }
+  .body details > summary:hover { color: var(--fg); }
+  .body details > summary::after { content: ' +'; }
+  .body details[open] > summary::after { content: ' –'; }
+  .body details[open] > :not(summary) { animation: rise .45s var(--ease); }
+
+  label { display: block; font-size: 12px; color: var(--muted); margin: 14px 0 6px; letter-spacing: .02em; }
+  input, select, textarea, button { width: 100%; font: inherit; color: var(--fg); background: var(--field); border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px 13px; outline: none; transition: border-color .25s, background .25s, color .25s; }
+  input:hover, select:hover, textarea:hover { border-color: #3a3a3c; }
+  input:focus, select:focus, textarea:focus { border-color: var(--muted); }
+  select { appearance: none; -webkit-appearance: none; padding-right: 32px;
+    background: var(--field) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238d8a85' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 13px center; }
+  textarea { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; min-height: 90px; resize: vertical; }
+  input[type=color] { padding: 3px; height: 42px; cursor: pointer; }
+  input[type=range] { padding: 0; background: none; border: 0; accent-color: var(--accent); }
+  button { cursor: pointer; background: var(--fg); color: var(--bg); border-color: var(--fg); border-radius: 999px; padding: 10px 20px; font-weight: 500; }
+  button:hover { background: var(--accent); border-color: var(--accent); color: #111; }
+  button:disabled { opacity: .5; cursor: default; }
+  button.ghost { background: none; color: var(--fg); border-color: #333; font-weight: 400; margin-top: 14px; }
+  button.ghost:hover { border-color: var(--fg); color: var(--fg); background: none; }
+
+  /* on/off options as pills, like the filter buttons on the photo site */
+  .toggles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .tog { display: inline-flex; align-items: center; margin: 0; padding: 8px 16px; border: 1px solid #333; border-radius: 999px;
+    font-size: 14px; color: var(--fg); letter-spacing: 0; cursor: pointer; user-select: none; transition: background .25s, color .25s, border-color .25s; }
+  .tog:hover { border-color: var(--fg); }
+  .tog input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+  .tog:has(input:checked) { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .tog:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .row { display: flex; gap: 8px; } .row > * { flex: 1; min-width: 0; }
+  .pick { flex: 0 0 124px; font-size: 13px; }
+  .search { display: flex; gap: 8px; } .search button { flex: 0 0 auto; width: auto; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .chips button { width: auto; padding: 6px 13px; font-size: 13px; background: none; color: var(--fg); border-color: #333; font-weight: 400; }
+  .chips button:hover { border-color: var(--fg); background: none; color: var(--fg); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 14px; }
+  .grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; cursor: pointer; background: #1a1a1a;
+    opacity: 0; transform: translateY(10px); transition: opacity .6s, transform .6s var(--ease), outline-color .2s;
+    outline: 2px solid transparent; outline-offset: 2px; }
+  .grid img.in { opacity: 1; transform: none; }
+  .grid img.in:hover { transform: scale(1.04); }
+  .grid img.sel { outline-color: var(--accent); }
+  #status { font-size: 13px; color: var(--muted); margin-top: 12px; }
+  #exInfo { font-size: 13px; color: var(--muted); margin: 16px 0; line-height: 1.6; }
+  #exInfo b { color: var(--fg); font-weight: 500; }
+  #download { padding: 14px; font-size: 16px; }
+
+  @media (max-width: 760px) {
+    body { grid-template-columns: 1fr; height: auto; }
+    main { order: -1; padding: 20px 16px 4px; }
+    canvas { max-height: 62svh; }
+    aside { padding: 24px 16px 48px; border: 0; }
+    .top h1 { font-size: 48px; margin-bottom: 24px; }
+    .grid { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 <aside>
   <header class="top">
-    <h1>NASA Poster Studio</h1>
-    <p>Poster und Hintergrundbilder aus dem NASA-Bildarchiv.</p>
+    <p class="eyebrow">NASA Image Archive</p>
+    <h1>Poster<br>Studio</h1>
   </header>
 
-  <section class="card">
-    <h2>Bild</h2>
-    <form id="searchForm" class="search">
-      <input id="q" type="search" value="saturn v rocket" placeholder="z. B. saturn v start, mondlandung">
-      <button>Suchen</button>
-    </form>
-    <div class="chips" id="ideas"></div>
-    <div id="status"></div>
-    <div class="grid" id="results"></div>
-    <button class="ghost" id="more" style="display:none">Weitere Bilder laden</button>
-    <label>Ähnliche Begriffe</label>
-    <div class="chips" id="related" style="margin-top:0"></div>
-    <details>
-      <summary>Suche verfeinern</summary>
-      <label class="switch" style="margin-top:8px">Begriffe müssen im Titel stehen <input type="checkbox" id="titleOnly"></label>
-      <label>Bilder ausblenden mit diesen Wörtern</label>
-      <input id="exclude" value="exhibit, museum, ceremony, gala, award, visitor, podium, reception, dinner, briefing">
-      <div class="row">
-        <div><label>Jahr von</label><input id="yearFrom" type="number" placeholder="1960"></div>
-        <div><label>bis</label><input id="yearTo" type="number" placeholder="2026"></div>
-      </div>
-    </details>
-  </section>
-
-  <section class="card">
-    <h2>Format</h2>
-    <select id="format">
-      <optgroup label="Poster">
-        <option value="3000x4200">Poster 50 × 70 cm</option>
-        <option value="2480x3508">Poster DIN A (A4, A3, A2 …)</option>
-        <option value="custom">Eigene Postergröße …</option>
-      </optgroup>
-      <optgroup label="iPhone-Hintergrund">
-        <option value="1320x2868">iPhone 17 Pro Max · 16 Pro Max</option>
-        <option value="1206x2622">iPhone 17 · 17 Pro · 16 Pro</option>
-        <option value="1260x2736">iPhone Air</option>
-        <option value="1290x2796">iPhone 16 Plus · 15 Plus · 15 Pro Max · 14 Pro Max</option>
-        <option value="1179x2556">iPhone 16 · 15 · 15 Pro · 14 Pro</option>
-        <option value="1170x2532">iPhone 16e · 14 · 13 · 13 Pro · 12 · 12 Pro</option>
-        <option value="1284x2778">iPhone 14 Plus · 13 Pro Max · 12 Pro Max</option>
-        <option value="1080x2340">iPhone 13 mini · 12 mini</option>
-        <option value="1242x2688">iPhone 11 Pro Max · XS Max</option>
-        <option value="1125x2436">iPhone 11 Pro · XS · X</option>
-        <option value="828x1792">iPhone 11 · XR</option>
-        <option value="750x1334">iPhone SE (2./3. Gen.) · 8</option>
-      </optgroup>
-      <optgroup label="Desktop">
-        <option value="3840x2160">Desktop 4K (16:9)</option>
-      </optgroup>
-    </select>
-    <div class="row" id="customSize" hidden>
-      <div><label>Breite in cm</label><input id="cw" type="number" min="5" max="300" value="60"></div>
-      <div><label>Höhe in cm</label><input id="ch" type="number" min="5" max="300" value="90"></div>
+  <details class="sec" open>
+    <summary><span class="n">01</span>Bild</summary>
+    <div class="body">
+      <form id="searchForm" class="search">
+        <input id="q" type="search" value="saturn v rocket" placeholder="z. B. saturn v start, mondlandung">
+        <button>Suchen</button>
+      </form>
+      <div class="chips" id="ideas"></div>
+      <div id="status"></div>
+      <div class="grid" id="results"></div>
+      <button class="ghost" id="more" style="display:none">Weitere Bilder laden</button>
+      <label>Ähnliche Begriffe</label>
+      <div class="chips" id="related" style="margin-top:0"></div>
+      <details>
+        <summary>Suche verfeinern</summary>
+        <div class="toggles" style="margin-top:12px"><label class="tog"><input type="checkbox" id="titleOnly">Nur Treffer im Titel</label></div>
+        <label>Bilder ausblenden mit diesen Wörtern</label>
+        <input id="exclude" value="exhibit, museum, ceremony, gala, award, visitor, podium, reception, dinner, briefing">
+        <div class="row">
+          <div><label>Jahr von</label><input id="yearFrom" type="number" placeholder="1960"></div>
+          <div><label>bis</label><input id="yearTo" type="number" placeholder="2026"></div>
+        </div>
+      </details>
     </div>
-    <div class="row">
-      <div><label>Hintergrund</label><input type="color" id="bg" value="#1c1c1c"></div>
-      <div><label>Schrift</label><input type="color" id="fg" value="#f2efe8"></div>
-      <div><label>Akzent</label><input type="color" id="accent" value="#ff6a2b"></div>
-    </div>
-    <label class="switch" style="margin-top:10px">Bild schwarz-weiß <input type="checkbox" id="gray" checked></label>
-    <label>Bildgröße</label><input type="range" id="scale" min="0.4" max="2" step="0.01" value="1">
-    <label>Bildposition</label><input type="range" id="offY" min="-0.4" max="0.4" step="0.01" value="0">
-    <details>
-      <summary>Mischmodus</summary>
-      <label>Wie das Foto mit dem Hintergrund verschmilzt</label>
-      <select id="blend">
-        <option value="screen">Screen – Schwarz verschwindet</option>
-        <option value="multiply">Multiplizieren – Weiß verschwindet</option>
-        <option value="luminosity">Luminanz</option>
-        <option value="source-over">Normal – Foto wie es ist</option>
-      </select>
-    </details>
-  </section>
+  </details>
 
-  <section class="card">
-    <h2>Großes Wort</h2>
-    <div class="row"><input id="word" value="SATURN V"><select class="pick" data-for="word"></select></div>
-    <label>Drehung: <span id="rotVal">90°</span></label>
-    <input type="range" id="rot" min="-90" max="90" step="1" value="90">
-    <label>Größe</label><input type="range" id="wordSize" min="0.3" max="1.5" step="0.01" value="1">
-    <details>
-      <summary>Darstellung</summary>
-      <label>Deckkraft</label><input type="range" id="wordAlpha" min="0.05" max="1" step="0.01" value="1">
-      <div class="row">
-        <div><label>Ebene</label>
-          <select id="wordLayer"><option value="back">Hinter dem Bild</option><option value="front">Vor dem Bild</option></select></div>
-        <div><label>Stil</label>
-          <select id="wordStyle"><option value="fill">Gefüllt</option><option value="outline">Kontur</option></select></div>
+  <details class="sec" open>
+    <summary><span class="n">02</span>Format</summary>
+    <div class="body">
+      <select id="format">
+        <optgroup label="Poster">
+          <option value="3000x4200">Poster 50 × 70 cm</option>
+          <option value="2480x3508">Poster DIN A (A4, A3, A2 …)</option>
+          <option value="custom">Eigene Postergröße …</option>
+        </optgroup>
+        <optgroup label="iPhone-Hintergrund">
+          <option value="1320x2868">iPhone 17 Pro Max · 16 Pro Max</option>
+          <option value="1206x2622">iPhone 17 · 17 Pro · 16 Pro</option>
+          <option value="1260x2736">iPhone Air</option>
+          <option value="1290x2796">iPhone 16 Plus · 15 Plus · 15 Pro Max · 14 Pro Max</option>
+          <option value="1179x2556">iPhone 16 · 15 · 15 Pro · 14 Pro</option>
+          <option value="1170x2532">iPhone 16e · 14 · 13 · 13 Pro · 12 · 12 Pro</option>
+          <option value="1284x2778">iPhone 14 Plus · 13 Pro Max · 12 Pro Max</option>
+          <option value="1080x2340">iPhone 13 mini · 12 mini</option>
+          <option value="1242x2688">iPhone 11 Pro Max · XS Max</option>
+          <option value="1125x2436">iPhone 11 Pro · XS · X</option>
+          <option value="828x1792">iPhone 11 · XR</option>
+          <option value="750x1334">iPhone SE (2./3. Gen.) · 8</option>
+        </optgroup>
+        <optgroup label="Desktop">
+          <option value="3840x2160">Desktop 4K (16:9)</option>
+        </optgroup>
+      </select>
+      <div class="row" id="customSize" hidden>
+        <div><label>Breite in cm</label><input id="cw" type="number" min="5" max="300" value="60"></div>
+        <div><label>Höhe in cm</label><input id="ch" type="number" min="5" max="300" value="90"></div>
       </div>
-      <label>Mischung mit Bild und Hintergrund</label>
-      <select id="wordBlend">
-        <option value="source-over">Normal</option>
-        <option value="multiply">Multiplizieren</option>
-        <option value="screen">Negativ multiplizieren</option>
-        <option value="overlay">Ineinanderkopieren</option>
-        <option value="difference">Differenz</option>
-        <option value="color">Farbe</option>
-      </select>
-    </details>
-  </section>
+      <div class="row">
+        <div><label>Hintergrund</label><input type="color" id="bg" value="#1c1c1c"></div>
+        <div><label>Schrift</label><input type="color" id="fg" value="#f2efe8"></div>
+        <div><label>Akzent</label><input type="color" id="accent" value="#ff6a2b"></div>
+      </div>
+      <div class="toggles" style="margin-top:14px"><label class="tog"><input type="checkbox" id="gray" checked>Schwarz-weiß</label></div>
+      <label>Bildgröße</label><input type="range" id="scale" min="0.4" max="2" step="0.01" value="1">
+      <label>Bildposition</label><input type="range" id="offY" min="-0.4" max="0.4" step="0.01" value="0">
+      <details>
+        <summary>Mischmodus</summary>
+        <label>Wie das Foto mit dem Hintergrund verschmilzt</label>
+        <select id="blend">
+          <option value="screen">Screen – Schwarz verschwindet</option>
+          <option value="multiply">Multiplizieren – Weiß verschwindet</option>
+          <option value="luminosity">Luminanz</option>
+          <option value="source-over">Normal – Foto wie es ist</option>
+        </select>
+      </details>
+    </div>
+  </details>
 
-  <section class="card">
-    <h2>Texte</h2>
-    <label style="margin-top:0">Titel</label>
-    <div class="row"><input id="title" value="Saturn V"><select class="pick" data-for="title"></select></div>
-    <details>
-      <summary>Weitere Texte</summary>
-      <label>Kopfzeile rechts</label><input id="brand" value="NASA ARCHIVE · SPACE COLLECTION">
-      <label>Datenblock (KEY: WERT pro Zeile)</label><textarea id="specs"></textarea>
-      <label>Hinweis links (erste Zeile = Akzent)</label><textarea id="note1" style="min-height:60px">THRUST
+  <details class="sec" open>
+    <summary><span class="n">03</span>Großes Wort</summary>
+    <div class="body">
+      <div class="row"><input id="word" value="SATURN V"><select class="pick" data-for="word"></select></div>
+      <label>Drehung: <span id="rotVal">90°</span></label>
+      <input type="range" id="rot" min="-90" max="90" step="1" value="90">
+      <label>Größe</label><input type="range" id="wordSize" min="0.3" max="1.5" step="0.01" value="1">
+      <details>
+        <summary>Darstellung</summary>
+        <label>Deckkraft</label><input type="range" id="wordAlpha" min="0.05" max="1" step="0.01" value="1">
+        <div class="row">
+          <div><label>Ebene</label>
+            <select id="wordLayer"><option value="back">Hinter dem Bild</option><option value="front">Vor dem Bild</option></select></div>
+          <div><label>Stil</label>
+            <select id="wordStyle"><option value="fill">Gefüllt</option><option value="outline">Kontur</option></select></div>
+        </div>
+        <label>Mischung mit Bild und Hintergrund</label>
+        <select id="wordBlend">
+          <option value="source-over">Normal</option>
+          <option value="multiply">Multiplizieren</option>
+          <option value="screen">Negativ multiplizieren</option>
+          <option value="overlay">Ineinanderkopieren</option>
+          <option value="difference">Differenz</option>
+          <option value="color">Farbe</option>
+        </select>
+      </details>
+    </div>
+  </details>
+
+  <details class="sec" open>
+    <summary><span class="n">04</span>Texte</summary>
+    <div class="body">
+      <label style="margin-top:0">Titel</label>
+      <div class="row"><input id="title" value="Saturn V"><select class="pick" data-for="title"></select></div>
+      <details>
+        <summary>Weitere Texte</summary>
+        <label>Kopfzeile rechts</label><input id="brand" value="NASA ARCHIVE · SPACE COLLECTION">
+        <label>Datenblock (KEY: WERT pro Zeile)</label><textarea id="specs"></textarea>
+        <label>Hinweis links (erste Zeile = Akzent)</label><textarea id="note1" style="min-height:60px">THRUST
 7,600,000 LBF
 [34.5 MN]</textarea>
-      <label>Hinweis rechts</label><textarea id="note2" style="min-height:60px">HEIGHT
+        <label>Hinweis rechts</label><textarea id="note2" style="min-height:60px">HEIGHT
 110.6 M / 363 FT
 [3 STAGES]</textarea>
-      <label>Fußzeile</label><input id="footer">
-    </details>
-  </section>
-
-  <section class="card">
-    <h2>Anzeigen</h2>
-    <label class="switch">Großes Wort <input type="checkbox" id="show_word" checked></label>
-    <label class="switch">Datenblock <input type="checkbox" id="show_specs" checked></label>
-    <label class="switch">Kopfzeile <input type="checkbox" id="show_brand" checked></label>
-    <label class="switch">Hinweise <input type="checkbox" id="show_notes" checked></label>
-    <label class="switch">Titel <input type="checkbox" id="show_title" checked></label>
-    <label class="switch">Fußzeile & Barcode <input type="checkbox" id="show_footer" checked></label>
-    <label class="switch">Schrift automatisch lesbar <input type="checkbox" id="autoContrast" checked></label>
-    <button class="ghost" id="resetPos">Positionen zurücksetzen</button>
-  </section>
-
-  <section class="card">
-    <h2>Export</h2>
-    <label style="margin-top:0">Auflösung</label>
-    <select id="exScale">
-      <option value="0.25">25 % – Vorschau / Teilen</option>
-      <option value="0.5">50 % – Bildschirm</option>
-      <option value="1" selected>100 % – Standard</option>
-      <option value="1.5">150 % – großer Druck</option>
-      <option value="2">200 % – maximale Qualität</option>
-    </select>
-    <div class="row">
-      <div><label>Dateiformat</label>
-        <select id="exType"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select></div>
-      <div><label>Qualität: <span id="qVal">90</span> %</label><input type="range" id="exQ" min="0.5" max="1" step="0.01" value="0.9"></div>
+        <label>Fußzeile</label><input id="footer">
+      </details>
     </div>
-    <div id="exInfo"></div>
-    <button id="download">Herunterladen</button>
-  </section>
+  </details>
+
+  <details class="sec">
+    <summary><span class="n">05</span>Anzeigen</summary>
+    <div class="body">
+      <div class="toggles">
+        <label class="tog"><input type="checkbox" id="show_word" checked>Großes Wort</label>
+        <label class="tog"><input type="checkbox" id="show_specs" checked>Datenblock</label>
+        <label class="tog"><input type="checkbox" id="show_brand" checked>Kopfzeile</label>
+        <label class="tog"><input type="checkbox" id="show_notes" checked>Hinweise</label>
+        <label class="tog"><input type="checkbox" id="show_title" checked>Titel</label>
+        <label class="tog"><input type="checkbox" id="show_footer" checked>Fußzeile &amp; Barcode</label>
+        <label class="tog"><input type="checkbox" id="autoContrast" checked>Schrift automatisch lesbar</label>
+      </div>
+      <button class="ghost" id="resetPos">Positionen zurücksetzen</button>
+    </div>
+  </details>
+
+  <details class="sec" open>
+    <summary><span class="n">06</span>Export</summary>
+    <div class="body">
+      <label style="margin-top:0">Auflösung</label>
+      <select id="exScale">
+        <option value="0.25">25 % – Vorschau / Teilen</option>
+        <option value="0.5">50 % – Bildschirm</option>
+        <option value="1" selected>100 % – Standard</option>
+        <option value="1.5">150 % – großer Druck</option>
+        <option value="2">200 % – maximale Qualität</option>
+      </select>
+      <div class="row">
+        <div><label>Dateiformat</label>
+          <select id="exType"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select></div>
+        <div><label>Qualität: <span id="qVal">90</span> %</label><input type="range" id="exQ" min="0.5" max="1" step="0.01" value="0.9"></div>
+      </div>
+      <div id="exInfo"></div>
+      <button id="download">Herunterladen</button>
+    </div>
+  </details>
 </aside>
 <main>
   <canvas id="cv"></canvas>
@@ -230,7 +277,31 @@ let pos = {}, boxes = {}, drag = null; // pos: dragged positions as fractions of
 
 const IDEAS = ['saturn v launch', 'apollo 11 moon', 'earthrise', 'space shuttle launch', 'hubble nebula', 'jupiter juno',
   'mars rover', 'international space station', 'astronaut spacewalk', 'artemis sls', 'solar eclipse', 'galaxy',
-  'saturn rings cassini', 'lunar module', 'x-15', 'blue marble', 'pillars of creation', 'webb telescope'];
+  'saturn rings cassini', 'lunar module', 'x-15', 'blue marble', 'pillars of creation', 'webb telescope',
+  'falcon 9 launch', 'crew dragon', 'falcon heavy', 'starship'];
+
+// key facts for the side notes, matched against title + keywords; first match wins, so specific vehicles come first
+const FACTS = [
+  [/starship/i, 'STARSHIP', 'THRUST\n16,700,000 LBF\n[74.4 MN]', 'HEIGHT\n123 M / 404 FT\n[2 STAGES]'],
+  [/falcon heavy/i, 'FALCON HEAVY', 'THRUST\n5,130,000 LBF\n[22.8 MN]', 'HEIGHT\n70 M / 230 FT\n[3 CORES]'],
+  [/falcon 9/i, 'FALCON 9', 'THRUST\n1,710,000 LBF\n[7.6 MN]', 'HEIGHT\n70 M / 230 FT\n[REUSABLE]'],
+  [/saturn v\b|saturn 5/i, 'SATURN V', 'THRUST\n7,600,000 LBF\n[34.5 MN]', 'HEIGHT\n110.6 M / 363 FT\n[3 STAGES]'],
+  [/\bsls\b|space launch system/i, 'SLS', 'THRUST\n8,800,000 LBF\n[39.1 MN]', 'HEIGHT\n98 M / 322 FT\n[BLOCK 1]'],
+  [/space shuttle|\bsts-\d/i, 'SPACE SHUTTLE', 'THRUST\n7,800,000 LBF\n[34.7 MN]', 'HEIGHT\n56.1 M / 184 FT\n[135 MISSIONS]'],
+  [/dragon/i, 'DRAGON', 'CREW\nUP TO 4\n[ASTRONAUTS]', 'HEIGHT\n8.1 M / 26.7 FT\n[REUSABLE]'],
+  [/x-15/i, 'X-15', 'TOP SPEED\nMACH 6.7\n[7,274 KM/H]', 'ALTITUDE\n108 KM\n[354,200 FT]'],
+  [/webb|jwst/i, 'WEBB', 'MIRROR\n6.5 M\n[18 SEGMENTS]', 'ORBIT\nL2\n[1.5 MILLION KM]'],
+  [/hubble/i, 'HUBBLE', 'MIRROR\n2.4 M\n[94.5 IN]', 'LAUNCH\nAPRIL 24, 1990\n[STS-31]'],
+  [/international space station|\biss\b/i, 'ISS', 'MASS\n419,725 KG\n[925,335 LB]', 'SPAN\n109 M / 357 FT\n[CREWED SINCE 2000]'],
+];
+const factsFor = d => FACTS.find(([re]) => re.test([d.title, ...(d.keywords || [])].join(' ')));
+console.assert(factsFor({ title: 'Space Shuttle Discovery launch' })[1] === 'SPACE SHUTTLE'
+  && factsFor({ title: 'SpaceX Crew-3 Falcon 9 Vertical', keywords: ['Crew Dragon'] })[1] === 'FALCON 9'
+  && !factsFor({ title: 'Mars sunset' }), 'factsFor');
+
+// fills a field from image data unless the user has edited it since the last automatic fill
+const auto = {};
+function autoSet(id, v) { if (!(id in auto) || $(id).value === auto[id]) $(id).value = auto[id] = v; }
 
 // the NASA archive is English; translate common German space words
 const DE = { start: 'launch', rakete: 'rocket', mond: 'moon', mondlandung: 'moon landing', landung: 'landing', erde: 'earth',
@@ -295,6 +366,7 @@ async function search(q, more = false) {
       t.src = it.links.find(l => l.rel === 'preview')?.href || it.links[0].href;
       t.title = it.data[0].title;
       t.loading = 'lazy';
+      t.onload = () => t.classList.add('in');
       t.onclick = () => pick(it, t);
       $('results').append(t);
       if (!item) pick(it, t);
@@ -316,6 +388,10 @@ function pick(it, thumb) {
   $('specs').value = specs.join('\n');
   $('title').value = d.title.length > 40 ? d.title.slice(0, 40).trim() + '…' : d.title;
   $('footer').value = `IMAGE CREDIT: NASA  ·  ${(d.center || '').toUpperCase()}  ·  ${(d.date_created || '').slice(0, 4)}`;
+  const f = factsFor(d);
+  autoSet('word', f ? f[1] : lastQuery.toUpperCase());
+  autoSet('note1', f ? f[2] : `DATE\n${(d.date_created || '').slice(0, 10)}\n[${(d.center || 'NASA').toUpperCase()}]`);
+  autoSet('note2', f ? f[3] : `NASA ID\n${d.nasa_id.toUpperCase()}\n[${(kw[0] || 'ARCHIVE').toUpperCase()}]`);
 
   const opts = [...new Set([lastQuery, d.title, ...kw, d.nasa_id, d.center, d.location, (d.date_created || '').slice(0, 4)].filter(Boolean))];
   document.querySelectorAll('select.pick').forEach(s => {
@@ -597,7 +673,7 @@ function showExportInfo() {
   $('exInfo').innerHTML = `<b>${W} × ${H} px</b> · ${mb}<br>` + ($('format').value === 'custom'
     ? `Druck bei ${$('cw').value} × ${$('ch').value} cm: ${Math.round(W / ($('cw').value / 2.54))} dpi`
     : `Druck bei 300 dpi: ${cm(W)} × ${cm(H)} cm`)
-    + (W * H > SAFARI_MAX_PX ? '<br><span style="color:#d70015">Zu groß für Safari/iPhone – dort kleinere Auflösung wählen.</span>' : '');
+    + (W * H > SAFARI_MAX_PX ? '<br><span style="color:#ff453a">Zu groß für Safari/iPhone – dort kleinere Auflösung wählen.</span>' : '');
   $('qVal').textContent = Math.round($('exQ').value * 100);
   $('exQ').disabled = $('exType').value === 'image/png';
 }
@@ -631,6 +707,8 @@ $('download').onclick = async () => {
 
 showIdeas();
 showExportInfo();
+// phones: start with only the image section open
+if (matchMedia('(max-width: 760px)').matches) document.querySelectorAll('details.sec').forEach((d, i) => d.open = i === 0);
 Promise.all([`900 50px Inter`, `300 50px Inter`, `700 50px Inter`, `400 20px "JetBrains Mono"`, `700 20px "JetBrains Mono"`].map(f => document.fonts.load(f)))
   .finally(() => { draw(); search($('q').value); });
 </script>
