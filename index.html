@@ -103,6 +103,10 @@
   <details class="sec" open>
     <summary><span class="n">01</span>Bild</summary>
     <div class="body">
+      <div class="toggles" style="margin-bottom:12px">
+        <label class="tog"><input type="radio" name="src" value="nasa" checked>NASA-Archiv</label>
+        <label class="tog"><input type="radio" name="src" value="commons">Wikimedia Commons</label>
+      </div>
       <form id="searchForm" class="search">
         <input id="q" type="search" value="saturn v rocket" placeholder="z. B. saturn v start, mondlandung">
         <button>Suchen</button>
@@ -330,13 +334,45 @@ function excluded(it, words) {
 console.assert(excluded({ data: [{ title: 'Saturn V Exhibit' }] }, ['exhibit']) && !excluded({ data: [{ title: 'Saturn V launch' }] }, ['exhibit']), 'exclude filter');
 
 // --- NASA search (images-api.nasa.gov sends CORS headers, no API key needed) ---
-async function fetchPage(query, pg) {
+const commons = () => document.querySelector('input[name=src]:checked').value === 'commons';
+const fetchPage = (query, pg) => commons() ? fetchCommons(query, pg) : fetchNasa(query, pg);
+
+async function fetchNasa(query, pg) {
   const p = new URLSearchParams({ media_type: 'image', page: pg });
   p.set($('titleOnly').checked ? 'title' : 'q', query);
   if ($('yearFrom').value) p.set('year_start', $('yearFrom').value);
   if ($('yearTo').value) p.set('year_end', $('yearTo').value);
   return (await (await fetch('https://images-api.nasa.gov/search?' + p)).json()).collection;
 }
+
+// Wikimedia Commons (CORS via origin=*); results are reshaped like NASA items so the rest of the app stays the same.
+// Commons only hosts free licenses, but most need the author and license named – that goes into credit + footer.
+const PER_PAGE = 30, stripHtml = h => new DOMParser().parseFromString(h || '', 'text/html').body.textContent.trim();
+async function fetchCommons(query, pg) {
+  const p = new URLSearchParams({ action: 'query', format: 'json', origin: '*', generator: 'search', gsrnamespace: 6,
+    gsrsearch: ($('titleOnly').checked ? query.split(' ').map(w => 'intitle:' + w).join(' ') : query) + ' filetype:bitmap',
+    gsrlimit: PER_PAGE, gsroffset: (pg - 1) * PER_PAGE, prop: 'imageinfo', iiprop: 'url|size|extmetadata', iiurlwidth: 400,
+    iiextmetadatafilter: 'LicenseShortName|Artist|DateTimeOriginal|Categories|ObjectName' });
+  const r = await (await fetch('https://commons.wikimedia.org/w/api.php?' + p)).json();
+  const items = Object.values(r.query?.pages || {}).sort((a, b) => a.index - b.index).map(commonsItem)
+    .filter(i => i.w >= 1200 && i.h >= 1200 && !i.tif); // too small for a poster; tiff originals don't load in browsers
+  return { items, links: r.continue ? [{ rel: 'next' }] : [], metadata: {} };
+}
+function commonsItem(pg) {
+  const ii = pg.imageinfo[0], m = k => stripHtml(ii.extmetadata?.[k]?.value);
+  const title = m('ObjectName') || pg.title.replace(/^File:/, '').replace(/\.\w+$/, '');
+  // upload.wikimedia.org sends CORS headers, so no proxy; use Wikimedia's standard thumbnail steps instead of huge originals
+  const sized = w => ii.width > w ? ii.thumburl.replace(/\/\d+px-/, `/${w}px-`) : ii.url;
+  return { commons: true, w: ii.width, h: ii.height, big: sized(1920), orig: sized(3840), tif: /\.tiff?$/i.test(ii.url),
+    links: [{ rel: 'preview', href: ii.thumburl }],
+    data: [{ title, nasa_id: String(pg.pageid), date_created: m('DateTimeOriginal').replace(/[^\d-].*$/, ''),
+      photographer: m('Artist') || 'Unknown', license: m('LicenseShortName'),
+      keywords: m('Categories').split('|').filter(c => c && !/files|images|photographs|cc-by|license|pages|uploaded|taken with|sdc|flickr|media/i.test(c)) }] };
+}
+console.assert(commonsItem({ pageid: 7, title: 'File:Starship SN16.jpeg', imageinfo: [{ width: 2000, height: 3000, url: 'u',
+  thumburl: 'https://x/thumb/a/ab/S.jpeg/400px-S.jpeg', extmetadata: { Artist: { value: '<a href="x">Jane Doe</a>' }, LicenseShortName: { value: 'CC BY-SA 2.0' }, DateTimeOriginal: { value: '2021-05-05 12:00' } } }] })
+  .data[0].title === 'Starship SN16' && commonsItem({ pageid: 1, title: 'File:a.jpg', imageinfo: [{ width: 5000, height: 9000, url: 'u',
+  thumburl: 'https://x/thumb/a/ab/S.jpeg/400px-S.jpeg' }] }).big === 'https://x/thumb/a/ab/S.jpeg/1920px-S.jpeg' && stripHtml('<a>Jane</a> Doe') === 'Jane Doe', 'commonsItem');
 
 async function search(q, more = false) {
   if (!more) { page = 1; item = null; $('results').innerHTML = ''; }
@@ -359,7 +395,7 @@ async function search(q, more = false) {
     const items = col.items.filter(i => i.links && !excluded(i, bad));
     $('more').style.display = (col.links || []).some(l => l.rel === 'next') ? '' : 'none';
     $('status').textContent = $('results').children.length + items.length
-      ? `${note}Suche „${lastQuery}“: ${col.metadata?.total_hits ?? ''} Treffer, ${col.items.length - items.length} aussortiert`
+      ? `${note}Suche „${lastQuery}“: ${col.metadata?.total_hits ? col.metadata.total_hits + ' Treffer, ' : ''}${col.items.length - items.length} aussortiert`
       : 'Nichts gefunden – andere Begriffe oder weniger Filter probieren';
     items.forEach(it => {
       const t = document.createElement('img');
@@ -379,15 +415,17 @@ function pick(it, thumb) {
   item = it;
   document.querySelectorAll('.grid img').forEach(i => i.classList.toggle('sel', i === thumb));
   const d = it.data[0], kw = d.keywords || [];
-  const href = (it.links.find(l => /~large\./.test(l.href)) || it.links.find(l => /~medium\./.test(l.href)) || it.links[0]).href;
+  const href = it.big || (it.links.find(l => /~large\./.test(l.href)) || it.links.find(l => /~medium\./.test(l.href)) || it.links[0]).href;
   const specs = [
-    ['NASA ID', d.nasa_id], ['DATE', (d.date_created || '').slice(0, 10)], ['CENTER', d.center],
+    [it.commons ? 'COMMONS ID' : 'NASA ID', d.nasa_id], ['DATE', (d.date_created || '').slice(0, 10)], ['CENTER', d.center],
     ['LOCATION', d.location], ['CREDIT', d.photographer || d.secondary_creator || 'NASA'],
-    ['TAGS', kw.slice(0, 3).join(' / ')],
+    ['LICENSE', d.license], ['TAGS', kw.slice(0, 3).join(' / ')],
   ].filter(([, v]) => v).map(([k, v]) => `${k}: ${String(v).toUpperCase()}`);
   $('specs').value = specs.join('\n');
   $('title').value = d.title.length > 40 ? d.title.slice(0, 40).trim() + '…' : d.title;
-  $('footer').value = `IMAGE CREDIT: NASA  ·  ${(d.center || '').toUpperCase()}  ·  ${(d.date_created || '').slice(0, 4)}`;
+  $('footer').value = it.commons
+    ? `IMAGE: ${d.photographer.toUpperCase().slice(0, 60)}  ·  ${d.license.toUpperCase()}  ·  WIKIMEDIA COMMONS`
+    : `IMAGE CREDIT: NASA  ·  ${(d.center || '').toUpperCase()}  ·  ${(d.date_created || '').slice(0, 4)}`;
   const f = factsFor(d);
   autoSet('word', f ? f[1] : lastQuery.toUpperCase());
   autoSet('note1', f ? f[2] : `DATE\n${(d.date_created || '').slice(0, 10)}\n[${(d.center || 'NASA').toUpperCase()}]`);
@@ -399,31 +437,34 @@ function pick(it, thumb) {
   });
   chips($('related'), kw.slice(0, 12), runSearch);
 
-  origHref = it.links.find(l => /~orig\.(jpe?g|png|tiff?)$/i.test(l.href))?.href;
+  origHref = it.orig || it.links.find(l => /~orig\.(jpe?g|png|tiff?)$/i.test(l.href))?.href;
   imgIsOrig = false;
   $('status').textContent = 'Lade Bild…';
-  loadImage(href).then(im => { if (item === it) { img = im; $('status').textContent = d.title; draw(); } })
+  loadImage(href, it.commons).then(im => { if (item === it) { img = im; $('status').textContent = it.commons
+      ? `${d.title} – ${d.photographer}, ${d.license}. Urheber und Lizenz müssen auf dem Poster genannt bleiben (Fußzeile).` : d.title; draw(); } })
     .catch(() => { $('status').textContent = 'Bild konnte nicht geladen werden'; });
 }
 
 // NASA's image host sends no CORS header, so images go through the public wsrv.nl proxy;
 // without it the canvas could not be exported.
-function loadImage(href) {
+function loadImage(href, direct = false) {
   return new Promise((resolve, reject) => {
     const im = new Image();
     im.crossOrigin = 'anonymous';
     im.onload = () => resolve(im);
     im.onerror = reject;
-    im.src = 'https://wsrv.nl/?url=' + encodeURIComponent(href) + (/\.tiff?$/i.test(href) ? '&output=jpg' : '');
+    im.src = direct ? href : 'https://wsrv.nl/?url=' + encodeURIComponent(href) + (/\.tiff?$/i.test(href) ? '&output=jpg' : '');
   });
 }
 
 // Safari ignores ctx.filter, so grayscale is baked into a cached copy of the image instead
+const SAFARI_MAX_PX = 16777216; // Safari/iOS refuse canvases above ~16.7 megapixels
 let grayCache = null;
 function grayOf(im) {
   if (grayCache?.[0] === im) return grayCache[1];
-  const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
-  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0);
+  const k = Math.min(1, Math.sqrt(SAFARI_MAX_PX / 2 / (im.width * im.height))); // tall originals would exceed Safari's canvas limit
+  const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0, c.width, c.height);
   const d = g.getImageData(0, 0, c.width, c.height), p = d.data;
   for (let i = 0; i < p.length; i += 4) p[i] = p[i + 1] = p[i + 2] = (0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2] - 128) * 1.15 + 128;
   g.putImageData(d, 0, 0);
@@ -647,6 +688,7 @@ cv.addEventListener('pointercancel', endDrag);
 // --- wiring ---
 $('searchForm').onsubmit = e => { e.preventDefault(); search($('q').value); };
 $('more').onclick = () => search(lastQuery, true);
+document.querySelectorAll('input[name=src]').forEach(r => r.onchange = () => search($('q').value));
 $('resetPos').onclick = () => { pos = {}; draw(); };
 document.querySelectorAll('select.pick').forEach(s => s.onchange = () => {
   if (s.value) { $(s.dataset.for).value = s.dataset.for === 'word' ? s.value.toUpperCase() : s.value; s.value = ''; draw(); }
@@ -659,7 +701,6 @@ $('bg').addEventListener('input', () => {
 $('rot').addEventListener('input', () => $('rotVal').textContent = $('rot').value + '°');
 document.querySelectorAll('aside input, aside select, aside textarea').forEach(el => el.addEventListener('input', redraw));
 // --- export ---
-const SAFARI_MAX_PX = 16777216; // Safari/iOS refuse canvases above ~16.7 megapixels
 const toBlob = () => new Promise(r => cv.toBlob(r, $('exType').value, +$('exQ').value));
 
 // estimate: encode the 100 % preview once and scale by s^1.5, not s² — rescaled photos gain or lose fewer
@@ -687,7 +728,7 @@ $('download').onclick = async () => {
     // use the full-size original for the export when NASA has one
     if (origHref && !imgIsOrig) {
       btn.textContent = 'Lade Originalbild…';
-      try { const it = item, im = await loadImage(origHref); if (item === it) { img = im; imgIsOrig = true; } } catch { /* keep the large version */ }
+      try { const it = item, im = await loadImage(origHref, it.commons); if (item === it) { img = im; imgIsOrig = true; } } catch { /* keep the large version */ }
     }
     drag = null;
     draw(+$('exScale').value);
